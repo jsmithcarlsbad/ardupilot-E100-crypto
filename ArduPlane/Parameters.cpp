@@ -1266,6 +1266,12 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     AP_SUBGROUPINFO(precland, "PLND_", 35, ParametersG2, AC_PrecLand),
 #endif
 
+#if AP_CRYPTO_ENABLED
+    // @Group: LAS_
+    // @Path: ../libraries/AP_Crypto/AP_Crypto_Params.cpp
+    AP_SUBGROUPINFO(crypto_params, "LAS_", 22, ParametersG2, AP_Crypto_Params),
+#endif
+
     AP_GROUPEND
 };
 

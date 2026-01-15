@@ -5,6 +5,13 @@
 #include <AP_Common/AP_Common.h>
 #include <AP_Gripper/AP_Gripper.h>
 
+// Include AP_Crypto config to define AP_CRYPTO_ENABLED if needed
+#include <AP_Crypto/AP_Crypto_config.h>
+
+#if AP_CRYPTO_ENABLED
+#include <AP_Crypto/AP_Crypto_Params.h>
+#endif
+
 // Global parameter class.
 //
 class Parameters {
@@ -357,6 +364,10 @@ public:
         k_param_acro_yaw_rate,
         k_param_takeoff_throttle_max_t,
         k_param_autotune_options,
+
+#if AP_CRYPTO_ENABLED
+        k_param_crypto_params,
+#endif
     };
 
     AP_Int16 format_version;
@@ -588,6 +599,10 @@ public:
     AP_Int32        oneshot_mask;
     
     AP_Int8         axis_bitmask; // axes to be autotuned
+
+#if AP_CRYPTO_ENABLED
+    AP_Crypto_Params crypto_params;
+#endif
 
     // just to make compilation easier when all things are compiled out...
     uint8_t unused_integer;
