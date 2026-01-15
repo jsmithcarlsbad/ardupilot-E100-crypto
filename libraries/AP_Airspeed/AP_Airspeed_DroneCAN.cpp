@@ -15,32 +15,43 @@ HAL_Semaphore AP_Airspeed_DroneCAN::_sem_registry;
 
 bool AP_Airspeed_DroneCAN::subscribe_msgs(AP_DroneCAN* ap_dronecan)
 {
-    const auto driver_index = ap_dronecan->get_driver_index();
+    if (ap_dronecan == nullptr) {
+        return false;
+    }
 
-    return (Canard::allocate_sub_arg_callback(ap_dronecan, &handle_airspeed, driver_index) != nullptr)
+    if (Canard::allocate_sub_arg_callback(ap_dronecan, &handle_airspeed, ap_dronecan->get_driver_index()) == nullptr) {
+        AP_BoardConfig::allocation_error("airspeed_sub");
+        return false;
+    }
+
 #if AP_AIRSPEED_HYGROMETER_ENABLE
-        && (Canard::allocate_sub_arg_callback(ap_dronecan, &handle_hygrometer, driver_index) != nullptr)
+    if (Canard::allocate_sub_arg_callback(ap_dronecan, &handle_hygrometer, ap_dronecan->get_driver_index()) == nullptr) {
+        AP_BoardConfig::allocation_error("hygrometer_sub");
+        return false;
+    }
 #endif
-    ;
+
+    return true;
 }
 
 AP_Airspeed_Backend* AP_Airspeed_DroneCAN::probe(AP_Airspeed &_frontend, uint8_t _instance, uint32_t previous_devid)
 {
     WITH_SEMAPHORE(_sem_registry);
 
+//    AP_Airspeed_DroneCAN* backend = nullptr;
     bool haveDetected = false;
     for (uint8_t i = 0; i < AIRSPEED_MAX_SENSORS; i++) {
         if (_detected_modules[i].driver == nullptr && _detected_modules[i].ap_dronecan != nullptr) {
             haveDetected = true;
-            const auto bus_id = AP_HAL::Device::make_bus_id(AP_HAL::Device::BUS_TYPE_UAVCAN,
+			const auto bus_id = AP_HAL::Device::make_bus_id(AP_HAL::Device::BUS_TYPE_UAVCAN,
                                                             _detected_modules[i].ap_dronecan->get_driver_index(),
                                                             _detected_modules[i].node_id, 0);
             if (previous_devid != 0 && previous_devid != bus_id) {
                 // match with previous ID only
                 continue;
             }
-            AP_Airspeed_DroneCAN* backend = NEW_NOTHROW AP_Airspeed_DroneCAN(_frontend, _instance);
-            if (backend == nullptr) {
+            AP_Airspeed_DroneCAN* backend = new AP_Airspeed_DroneCAN(_frontend, _instance);
+			if (backend == nullptr) { 
                 AP::can().log_text(AP_CANManager::LOG_INFO,
                                    LOG_TAG,
                                    "Failed register DroneCAN Airspeed Node %d on Bus %d\n",
@@ -59,7 +70,7 @@ AP_Airspeed_Backend* AP_Airspeed_DroneCAN::probe(AP_Airspeed &_frontend, uint8_t
         }
     }
 
-    // If some sensors have been detected the user might be tying to swap to a new device
+// If some sensors have been detected the user might be tying to swap to a new device
     if (haveDetected) {
         return nullptr;
     }
@@ -80,7 +91,7 @@ AP_Airspeed_Backend* AP_Airspeed_DroneCAN::probe(AP_Airspeed &_frontend, uint8_t
     const uint8_t node_id = AP_HAL::Device::devid_get_address(previous_devid);
 
     // Declare a new driver
-    AP_Airspeed_DroneCAN* backend = NEW_NOTHROW AP_Airspeed_DroneCAN(_frontend, _instance);
+    AP_Airspeed_DroneCAN* backend = new AP_Airspeed_DroneCAN(_frontend, _instance);
     if (backend == nullptr) {
         AP::can().log_text(AP_CANManager::LOG_INFO,
                             LOG_TAG,
@@ -105,7 +116,6 @@ AP_Airspeed_Backend* AP_Airspeed_DroneCAN::probe(AP_Airspeed &_frontend, uint8_t
                         "Registered undetected DroneCAN Airspeed Node %d on Bus %d\n",
                         node_id,
                         driver_index);
-
     return backend;
 }
 

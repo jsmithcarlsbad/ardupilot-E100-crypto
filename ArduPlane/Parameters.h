@@ -4,6 +4,13 @@
 
 #include <AP_Common/AP_Common.h>
 
+// Include AP_Crypto config to define AP_CRYPTO_ENABLED if needed
+#include <AP_Crypto/AP_Crypto_config.h>
+
+#if AP_CRYPTO_ENABLED
+#include <AP_Crypto/AP_Crypto_Params.h>
+#endif
+
 // Global parameter class.
 //
 class Parameters {
@@ -371,6 +378,10 @@ public:
         k_param_mode_autoland,
         k_param__gcs,
 
+#if AP_CRYPTO_ENABLED
+        k_param_crypto_params,
+#endif
+
     };
 
     AP_Int16 format_version;
@@ -594,6 +605,10 @@ public:
 
 #if AP_PLANE_SYSTEMID_ENABLED
     AP_SystemID systemid;
+#endif
+
+#if AP_CRYPTO_ENABLED
+    AP_Crypto_Params crypto_params;
 #endif
 };
 
