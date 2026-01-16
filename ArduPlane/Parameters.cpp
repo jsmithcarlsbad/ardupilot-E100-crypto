@@ -999,7 +999,7 @@ const AP_Param::Info Plane::var_info[] = {
     // @Group: TKOFF_
     // @Path: mode_takeoff.cpp
     GOBJECT(mode_takeoff, "TKOFF_", ModeTakeoff),
-
+    
     // @Group:
     // @Path: ../libraries/AP_Vehicle/AP_Vehicle.cpp
     PARAM_VEHICLE_INFO,
@@ -1025,7 +1025,7 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
 #endif
 
     // 3 was used by prototype for servo_channels
-    
+
     // @Param: SYSID_ENFORCE
     // @DisplayName: GCS sysid enforcement
     // @Description: This controls whether packets from other than the expected GCS system ID will be accepted
@@ -1245,7 +1245,7 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @Description: Mask of output channels to use oneshot on
     // @User: Advanced
     // @Bitmask: 0: Servo 1, 1: Servo 2, 2: Servo 3, 3: Servo 4, 4: Servo 5, 5: Servo 6, 6: Servo 7, 7: Servo 8, 8: Servo 9, 9: Servo 10, 10: Servo 11, 11: Servo 12, 12: Servo 13, 13: Servo 14, 14: Servo 15
-    AP_GROUPINFO("ONESHOT_MASK", 32, ParametersG2, oneshot_mask, 0),
+     AP_GROUPINFO("ONESHOT_MASK", 32, ParametersG2, oneshot_mask, 0),
 
 #if AP_SCRIPTING_ENABLED && AP_FOLLOW_ENABLED
     // @Group: FOLL
@@ -1552,12 +1552,12 @@ void Plane::load_parameters(void)
         AP_Param::set_default_by_name("INS_HNTC2_HMNCS", 1);
     }
 #endif // HAL_INS_NUM_HARMONIC_NOTCH_FILTERS
-    
+
     // PARAMETER_CONVERSION - Added: Mar-2022
 #if AP_FENCE_ENABLED
     AP_Param::convert_class(g.k_param_fence, &fence, fence.var_info, 0, 0, true);
 #endif
-  
+
     // PARAMETER_CONVERSION - Added: Dec 2023
     // Convert _CM (centimeter) parameters to meters and _CD (centidegrees) parameters to meters
     g.pitch_trim.convert_centi_parameter(AP_PARAM_INT16);

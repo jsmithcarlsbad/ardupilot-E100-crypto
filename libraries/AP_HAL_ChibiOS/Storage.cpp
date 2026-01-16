@@ -93,7 +93,7 @@ void Storage::_storage_open(void)
         // Storage will be initialized later after USB CDC is ready
         // This prevents all blocking filesystem operations during the critical USB CDC initialization window
         // Storage initialization will happen later via retry mechanisms or IO thread
-        return;
+                return;
 #endif
 
     if (_initialisedType != StorageBackend::None) {
