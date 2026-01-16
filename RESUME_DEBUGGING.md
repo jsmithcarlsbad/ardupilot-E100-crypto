@@ -32,20 +32,24 @@
 - **Location**: `/home/jsmith/E100_BUILD/ardupilot`
 - **Branch**: `E100-4.5.7-base`
 - **Base Version**: ArduPlane 4.5.7
-- **Remote**: https://github.com/IamPete1/ardupilot.git
+- **Upstream Remote (origin)**: https://github.com/IamPete1/ardupilot.git (fetch only, push disabled)
+- **Fork Remote (target)**: git@github.com:jsmithcarlsbad/ardupilot-E100-crypto.git (push enabled)
+- **Default Push Remote**: `target` (your fork)
+- **GitHub Repository**: https://github.com/jsmithcarlsbad/ardupilot-E100-crypto.git
 
 ### Recent Commits
 ```
+1c92ecb362 Add README_E100_CRYPTO.md documenting fork-specific changes
+930774f9dc Minor formatting/comment updates
+ad7a106d51 Add RESUME_DEBUGGING.md checkpoint
 831b52f6f7 Update PORTING_FIXES.md with Fix #4: Parameter index conflict resolution
 6fcbe802cd Booting,Connecting with LAS parameters shown in parameters list
 ```
 
 ### Working Directory Status
-- **Most changes committed** ✓
-- **⚠️ Uncommitted changes present**:
-  - `ArduPlane/Parameters.cpp` (modified)
-  - `libraries/AP_HAL_ChibiOS/Storage.cpp` (modified)
-- **Note**: These may be minor formatting or comment changes
+- **All changes committed** ✓
+- **Working tree clean** ✓
+- **Branch synced with remote** ✓ (`target/E100-4.5.7-base`)
 
 ---
 
@@ -198,6 +202,16 @@ cd /home/jsmith/E100_BUILD/ardupilot
 ### Commit: `831b52f6f7` - "Update PORTING_FIXES.md with Fix #4"
 1. `PORTING_FIXES.md` - Documentation updated
 
+### Commit: `ad7a106d51` - "Add RESUME_DEBUGGING.md checkpoint"
+1. `RESUME_DEBUGGING.md` - This checkpoint file
+
+### Commit: `930774f9dc` - "Minor formatting/comment updates"
+1. `ArduPlane/Parameters.cpp` - Minor formatting updates
+2. `libraries/AP_HAL_ChibiOS/Storage.cpp` - Minor comment updates
+
+### Commit: `1c92ecb362` - "Add README_E100_CRYPTO.md documenting fork-specific changes"
+1. `README_E100_CRYPTO.md` - Fork documentation
+
 ---
 
 ## RESUME INSTRUCTIONS
@@ -207,23 +221,31 @@ cd /home/jsmith/E100_BUILD/ardupilot
    ```bash
    cd /home/jsmith/E100_BUILD/ardupilot
    git status
-   git log --oneline -2
+   git log --oneline -5
    ```
-   Should show clean working tree and commits `831b52f6f7` and `6fcbe802cd`
+   Should show clean working tree and latest commit `1c92ecb362`
+   
+2. **Verify remotes**:
+   ```bash
+   git remote -v
+   ```
+   Should show:
+   - `origin` → IamPete1 (fetch only)
+   - `target` → jsmithcarlsbad (push enabled)
 
-2. **Rebuild if needed**:
+3. **Rebuild if needed**:
    ```bash
    ./waf clean
    ./waf configure --board CubeOrange
    ./waf plane
    ```
 
-3. **Test connection**:
+4. **Test connection**:
    - Flash firmware to CubeOrange
    - Connect via Mission Planner
    - Verify LAS parameters visible
 
-4. **Next testing**:
+5. **Next testing**:
    - Test scripting enabled (`SCR_ENABLE=1`)
    - Test with old parameters (don't clear before flashing)
 
@@ -231,8 +253,11 @@ cd /home/jsmith/E100_BUILD/ardupilot
 
 ## REFERENCE DOCUMENTATION
 
+- **README_E100_CRYPTO.md**: Fork-specific documentation and build instructions
 - **PORTING_FIXES.md**: Complete documentation of all fixes
+- **RESUME_DEBUGGING.md**: This checkpoint file
 - **Working Branch**: `/home/jsmith/LEIGH-6DOF-Branch`
+- **GitHub Fork**: https://github.com/jsmithcarlsbad/ardupilot-E100-crypto.git
 - **GitHub Reference**: https://github.com/jsmithcarlsbad/ardupilot-leigh-crypto.git
 
 ---
@@ -240,10 +265,12 @@ cd /home/jsmith/E100_BUILD/ardupilot
 ## CHECKPOINT VALIDATION
 
 **Checkpoint Created**: 2026-01-16  
-**Git State**: Clean, all changes committed  
+**Last Updated**: 2026-01-16 (after README_E100_CRYPTO.md creation)  
+**Git State**: Clean, all changes committed and pushed to fork  
 **Build Status**: Successful  
 **Connection Status**: ✅ Working  
 **Parameters Status**: ✅ Visible  
+**Repository Status**: ✅ Synced with https://github.com/jsmithcarlsbad/ardupilot-E100-crypto.git  
 
 **Ready to Resume**: ✅ YES
 
