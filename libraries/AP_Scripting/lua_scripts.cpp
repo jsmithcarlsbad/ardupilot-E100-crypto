@@ -516,6 +516,16 @@ void lua_scripts::run(void) {
     DEV_PRINTF("Lua: State memory usage: %i + %i\n", inital_mem, loaded_mem - inital_mem);
 #endif
 
+    // CRITICAL FIX: Ensure scripting directory exists before loading scripts
+    // This was deferred in init() to prevent blocking during USB CDC initialization
+    // Now we're in the scripting thread, so it's safe to create the directory
+    const char *dir_name = SCRIPTING_DIRECTORY;
+    if (AP::FS().mkdir(dir_name)) {
+        if (errno != EEXIST) {
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Scripting: failed to create (%s)", dir_name);
+        }
+    }
+
     // Scan the filesystem in an appropriate manner and autostart scripts
     // Skip those directores disabled with SCR_DIR_DISABLE param
     uint16_t dir_disable = AP_Scripting::get_singleton()->get_disabled_dir();

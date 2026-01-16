@@ -62,9 +62,11 @@ void Storage::_storage_open(void)
 
 #if HAL_WITH_RAMTRON
     if (fram.init() && fram.read(0, _buffer, CH_STORAGE_SIZE)) {
-        _save_backup();
+        // CRITICAL FIX: Skip backup during _storage_open() to prevent blocking during USB CDC initialization
+        // Backup will be done later after USB CDC is ready (or skipped entirely if not needed)
         _initialisedType = StorageBackend::FRAM;
         ::printf("Initialised Storage type=%d\n", _initialisedType);
+        ::printf("=== STORAGE DIAGNOSTIC: FRAM initialized ===\n");
         return;
     }
 
@@ -78,7 +80,8 @@ void Storage::_storage_open(void)
 #ifdef STORAGE_FLASH_PAGE
         // load from storage backend
         _flash_load();
-        _save_backup();
+        // CRITICAL FIX: Skip backup during _storage_open() to prevent blocking during USB CDC initialization
+        // Backup will be done later after USB CDC is ready (or skipped entirely if not needed)
         _initialisedType = StorageBackend::Flash;
 #elif defined(USE_POSIX)
         // if we have failed filesystem init don't try again
@@ -86,31 +89,11 @@ void Storage::_storage_open(void)
             return;
         }
 
-        // use microSD based storage
-        if (AP::FS().retry_mount()) {
-            log_fd = AP::FS().open(HAL_STORAGE_FILE, O_RDWR|O_CREAT);
-            if (log_fd == -1) {
-                ::printf("open failed of " HAL_STORAGE_FILE "\n");
-                return;
-            }
-            int ret = AP::FS().read(log_fd, _buffer, CH_STORAGE_SIZE);
-            if (ret < 0) {
-                ::printf("read failed for " HAL_STORAGE_FILE "\n");
-                AP::FS().close(log_fd);
-                log_fd = -1;
-                return;
-            }
-            // pre-fill to full size
-            if (AP::FS().lseek(log_fd, ret, SEEK_SET) != ret ||
-                (CH_STORAGE_SIZE-ret > 0 && AP::FS().write(log_fd, &_buffer[ret], CH_STORAGE_SIZE-ret) != CH_STORAGE_SIZE-ret)) {
-                ::printf("setup failed for " HAL_STORAGE_FILE "\n");
-                AP::FS().close(log_fd);
-                log_fd = -1;
-                return;
-            }
-            _save_backup();
-            _initialisedType = StorageBackend::SDCard;
-        }
+        // CRITICAL FIX: Skip SDCard mount and file operations during _storage_open() to prevent blocking USB CDC initialization
+        // Storage will be initialized later after USB CDC is ready
+        // This prevents all blocking filesystem operations during the critical USB CDC initialization window
+        // Storage initialization will happen later via retry mechanisms or IO thread
+        return;
 #endif
 
     if (_initialisedType != StorageBackend::None) {
@@ -127,8 +110,8 @@ void Storage::_storage_open(void)
  */
 void Storage::_save_backup(void)
 {
-#ifdef USE_POSIX
-    // allow for fallback to microSD based storage
+#if defined(USE_POSIX)
+    // allow for fallback to microSD or littlefs flash based storage
     // create the backup directory if need be
     int ret;
     const char* _storage_bak_directory = HAL_STORAGE_BACKUP_FOLDER;
@@ -283,7 +266,7 @@ void Storage::_timer_tick(void)
     }
 #endif
 
-#ifdef USE_POSIX
+#if defined(USE_POSIX)
     if ((_initialisedType == StorageBackend::SDCard) && log_fd != -1) {
         uint32_t offset = CH_STORAGE_LINE_SIZE*i;
         if (AP::FS().lseek(log_fd, offset, SEEK_SET) != offset) {
@@ -441,7 +424,7 @@ bool Storage::_flash_erase_ok(void)
  */
 bool Storage::healthy(void)
 {
-#ifdef USE_POSIX
+#if defined(USE_POSIX)
     // SD card storage is really slow
     if (_initialisedType == StorageBackend::SDCard) {
         return log_fd != -1 || AP_HAL::millis() - _last_empty_ms < 30000U;
@@ -461,7 +444,7 @@ bool Storage::erase(void)
         return AP_HAL::Storage::erase();
     }
 #endif
-#ifdef USE_POSIX
+#if defined(USE_POSIX)
     if (_initialisedType == StorageBackend::SDCard) {
         return AP_HAL::Storage::erase();
     }

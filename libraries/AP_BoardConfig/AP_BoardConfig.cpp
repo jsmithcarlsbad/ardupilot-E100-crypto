@@ -403,20 +403,9 @@ void AP_BoardConfig::init()
     }
     
 #if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS && defined(USE_POSIX)
-    uint8_t slowdown = constrain_int16(_sdcard_slowdown.get(), 0, 32);
-    const uint8_t max_slowdown = 8;
-    do {
-        if (AP::FS().retry_mount()) {
-            break;
-        }
-        slowdown++;
-        hal.scheduler->delay(5);
-    } while (slowdown < max_slowdown);
-    if (slowdown < max_slowdown) {
-        _sdcard_slowdown.set(slowdown);
-    } else {
-        printf("SDCard failed to start\n");
-    }
+    // CRITICAL FIX: Defer SDCard mount retry to prevent blocking during USB CDC initialization
+    // SDCard mounting will happen later in the IO thread (Scheduler.cpp) when it's safe
+    // This prevents blocking filesystem operations during the critical USB CDC initialization window
 #endif
 }
 

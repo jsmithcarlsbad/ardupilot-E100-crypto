@@ -173,6 +173,7 @@ AP_Scripting::AP_Scripting() {
     }
 #endif // CONFIG_HAL_BOARD == HAL_BOARD_SITL
     _singleton = this;
+    _thread_created = false;
 }
 
 void AP_Scripting::init(void) {
@@ -180,13 +181,30 @@ void AP_Scripting::init(void) {
         return;
     }
 
-    const char *dir_name = SCRIPTING_DIRECTORY;
-    if (AP::FS().mkdir(dir_name)) {
-        if (errno != EEXIST) {
-            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Scripting: failed to create (%s)", dir_name);
-        }
+#if AP_FILESYSTEM_FILE_WRITING_ENABLED
+    if ((_dir_disable & uint16_t(AP_Scripting::SCR_DIR::SCRIPTS)) == 0) {
+        // CRITICAL FIX: Skip directory creation in init() to prevent blocking during USB CDC initialization
+        // Directory will be created later in the scripting thread (lua_scripts::run()) where it's safe
+        // This prevents blocking filesystem operations during the critical USB CDC initialization window
+    }
+#endif
+
+    // CRITICAL FIX: Defer thread creation if USB is connected to prevent blocking during USB CDC initialization
+    // chThdCreateFromHeap() calls chSysLock() which disables interrupts, preventing USB CDC from responding
+    // Thread will be created later in update() after USB CDC is ready
+    if (hal.gpio->usb_connected()) {
+        // USB connected - defer thread creation to prevent interrupt blocking
+        _thread_created = false;
+        return;
     }
 
+    // USB not connected - create thread immediately (battery-powered operation)
+    _create_thread();
+}
+
+// CRITICAL FIX: Extract thread creation to separate function to allow deferred initialization
+// This prevents chSysLock() from blocking USB CDC interrupt handlers during early startup
+void AP_Scripting::_create_thread(void) {
     AP_HAL::Scheduler::priority_base priority = AP_HAL::Scheduler::PRIORITY_SCRIPTING;
     static const struct {
         ThreadPriority scr_priority;
@@ -212,6 +230,8 @@ void AP_Scripting::init(void) {
                                       "Scripting", SCRIPTING_STACK_SIZE, priority, 0)) {
         GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "Scripting: %s", "failed to start");
         _thread_failed = true;
+    } else {
+        _thread_created = true;
     }
 }
 
@@ -484,9 +504,27 @@ bool AP_Scripting::is_handling_command(uint16_t cmd_id)
 
 // Update called at 1Hz from AP_Vehicle
 void AP_Scripting::update() {
-
+    // CRITICAL FIX: Create scripting thread after USB CDC is ready AND after a delay
+    // This prevents chSysLock() from blocking USB CDC interrupt handlers during initialization
+    // Wait at least 5 seconds after boot to ensure USB CDC is fully ready
+    static uint32_t boot_time = 0;
+    if (boot_time == 0) {
+        boot_time = AP_HAL::millis();
+    }
+    
+    // Only create thread if:
+    // 1. Thread not already created
+    // 2. Scripting is enabled
+    // 3. USB is connected
+    // 4. At least 5 seconds have passed since boot (ensures USB CDC is fully ready)
+    if (!_thread_created && _enable && hal.gpio->usb_connected() && (AP_HAL::millis() - boot_time) > 5000) {
+        WITH_SEMAPHORE(_init_sem);
+        // Double-check after acquiring semaphore (another thread might have created it)
+        if (!_thread_created) {
+            _create_thread();
+        }
+    }
     save_checksum();
-
 }
 
 // Check if DEBUG_OPTS bit has been set to save current checksum values to params

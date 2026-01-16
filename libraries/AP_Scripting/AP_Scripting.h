@@ -150,6 +150,7 @@ private:
     void repl_stop(void);
 
     void thread(void); // main script execution thread
+    void _create_thread(void); // create scripting thread (deferred if USB connected)
 
     // Check if DEBUG_OPTS bit has been set to save current checksum values to params
     void save_checksum();
@@ -181,9 +182,11 @@ private:
     AP_Enum<ThreadPriority> _thd_priority;
 
     bool _thread_failed; // thread allocation failed
+    bool _thread_created; // true if scripting thread has been created
     bool _init_failed;  // true if memory allocation failed
     bool _restart; // true if scripts should be restarted
     bool _stop; // true if scripts should be stopped
+    HAL_Semaphore _init_sem; // semaphore for thread-safe deferred initialization
 
     static AP_Scripting *_singleton;
     int current_ref;

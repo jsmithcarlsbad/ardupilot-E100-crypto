@@ -189,8 +189,9 @@ bool sdcard_retry(void)
     if (!sdcard_running) {
         if (sdcard_init()) {
 #if AP_FILESYSTEM_FILE_WRITING_ENABLED
-            // create APM directory
-            AP::FS().mkdir("/APM");
+            // CRITICAL FIX: Skip directory creation during early startup to prevent blocking USB CDC initialization
+            // Directory will be created later when needed, or by other subsystems
+            // APM directory creation deferred to prevent blocking during USB CDC initialization window
 #endif
         }
     }

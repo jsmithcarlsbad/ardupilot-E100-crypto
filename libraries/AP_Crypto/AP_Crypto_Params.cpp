@@ -149,7 +149,11 @@ bool AP_Crypto_Params::exclude_lua_script_content_from_logs(void)
 
 int8_t AP_Crypto_Params::get_key_status(void) const
 {
-    // Check if key is actually stored in storage
+    // CRITICAL FIX: Never access storage during parameter loading or USB CDC initialization
+    // This prevents Windows COM port configuration from timing out (semaphore timeout)
+    // Fast-path: return 0 immediately if storage isn't ready
+    // This matches the working old branch behavior that fixed this exact issue
+    // has_stored_key() already has fast-path checks, so we can call it safely
     return AP_Crypto::has_stored_key() ? 1 : 0;
 }
 

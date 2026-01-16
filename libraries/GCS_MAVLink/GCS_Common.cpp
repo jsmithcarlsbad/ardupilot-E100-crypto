@@ -814,6 +814,16 @@ void GCS_MAVLINK::send_text(MAV_SEVERITY severity, const char *fmt, ...) const
     va_end(arg_list);
 }
 
+bool GCS_MAVLINK::last_txbuf_is_greater(uint8_t txbuf_limit)
+{
+    if (AP_HAL::millis() - last_radio_status.received_ms > 5000) {
+        // stale report - for USB/Serial connections, radio status is always stale
+        // so we return true to allow parameter enumeration
+        return true;
+    }
+    return last_radio_status.txbuf > txbuf_limit;
+}
+
 float GCS_MAVLINK::telemetry_radio_rssi()
 {
     if (AP_HAL::millis() - last_radio_status.received_ms > 5000) {
@@ -844,6 +854,7 @@ void GCS_MAVLINK::handle_radio_status(const mavlink_message_t &msg, bool log_rad
     }
 
     last_txbuf = packet.txbuf;
+    last_radio_status.txbuf = packet.txbuf;
 
     // use the state of the transmit buffer in the radio to
     // control the stream rate, giving us adaptive software
@@ -2504,12 +2515,20 @@ void GCS::setup_console()
     AP_HAL::UARTDriver *uart = AP::serialmanager().find_serial(AP_SerialManager::SerialProtocol_MAVLink, 0);
     if (uart == nullptr) {
         // this is probably not going to end well.
+        DEV_PRINTF("GCS: setup_console() FAILED - find_serial() returned nullptr (no USB CDC port found)\n");
         return;
     }
     if (ARRAY_SIZE(chan_parameters) == 0) {
+        DEV_PRINTF("GCS: setup_console() FAILED - no channel parameters available\n");
         return;
     }
+    uint8_t num_gcs_before = _num_gcs;
     create_gcs_mavlink_backend(chan_parameters[0], *uart);
+    if (_num_gcs == num_gcs_before) {
+        DEV_PRINTF("GCS: setup_console() FAILED - create_gcs_mavlink_backend() did not create channel (init() returned false)\n");
+    } else {
+        DEV_PRINTF("GCS: setup_console() SUCCESS - channel created, _num_gcs=%u\n", (unsigned)_num_gcs);
+    }
 }
 
 
@@ -2528,12 +2547,17 @@ void GCS::create_gcs_mavlink_backend(GCS_MAVLINK_Parameters &params, AP_HAL::UAR
         return;
     }
 
+    hal.console->printf("GCS: Calling _chan[%u]->init(%u)...\n", (unsigned)_num_gcs, (unsigned)_num_gcs);
     if (!_chan[_num_gcs]->init(_num_gcs)) {
+        hal.console->printf("GCS: _chan[%u]->init(%u) returned FALSE - channel init FAILED (find_protocol_instance returned nullptr?)\n", 
+                   (unsigned)_num_gcs, (unsigned)_num_gcs);
         delete _chan[_num_gcs];
         _chan[_num_gcs] = nullptr;
         return;
     }
 
+    hal.console->printf("GCS: _chan[%u]->init(%u) returned TRUE - channel created successfully\n", 
+               (unsigned)_num_gcs, (unsigned)_num_gcs);
     _num_gcs++;
 }
 
@@ -2884,6 +2908,12 @@ MAV_STATE GCS_MAVLINK::system_status() const
  */
 void GCS_MAVLINK::send_heartbeat() const
 {
+    // Diagnostic: Log heartbeat transmission (only first few to avoid spam)
+    static uint32_t heartbeat_count = 0;
+    if (heartbeat_count < 3) {
+        DEV_PRINTF("GCS: send_heartbeat() called (count=%u, chan=%u)\n", (unsigned)heartbeat_count, (unsigned)chan);
+        heartbeat_count++;
+    }
     mavlink_msg_heartbeat_send(
         chan,
         gcs().frame_type(),

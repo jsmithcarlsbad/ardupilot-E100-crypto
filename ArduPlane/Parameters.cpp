@@ -1269,7 +1269,9 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
 #if AP_CRYPTO_ENABLED
     // @Group: LAS_
     // @Path: ../libraries/AP_Crypto/AP_Crypto_Params.cpp
-    AP_SUBGROUPINFO(crypto_params, "LAS_", 22, ParametersG2, AP_Crypto_Params),
+    // CRITICAL: LAS_ parameters MUST be at the END of ParametersG2 list to avoid parameter enumeration issues
+    // Using index 36 (next available after PLND_ at 35) instead of 22 to maintain proper ordering
+    AP_SUBGROUPINFO(crypto_params, "LAS_", 36, ParametersG2, AP_Crypto_Params),
 #endif
 
     AP_GROUPEND
