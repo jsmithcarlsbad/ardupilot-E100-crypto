@@ -38,14 +38,6 @@ const struct AP_Param::GroupInfo AP_Crypto_Params::var_info[] = {
     // @Values: 0:No Key,1:Key Stored
     AP_GROUPINFO("CRYPT_STAT", 3, AP_Crypto_Params, _key_status, 0),
     
-    // @Param: SCR_ENABLE
-    // @DisplayName: Scripting Enable
-    // @Description: Enable Lua scripting (0=disabled, 1=enabled). This parameter persists across reboots and is used by AP_Vehicle::scripting.
-    // @User: Advanced
-    // @Values: 0:Disabled,1:Enabled
-    // @RebootRequired: True
-    AP_GROUPINFO("SCR_ENABLE", 4, AP_Crypto_Params, _scripting_enable, 0),
-    
     AP_GROUPEND
 };
 
