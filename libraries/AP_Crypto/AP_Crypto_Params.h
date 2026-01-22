@@ -43,9 +43,6 @@ public:
     // Get the actual LAS_CRYPT_KEY parameter value (bypasses MAVLink security)
     int32_t get_key_value(void) const { return _key_param.get(); }
     
-    // Get scripting enable status (LAS_SCR_ENABLE parameter)
-    int8_t get_scripting_enable(void) const { return _scripting_enable.get(); }
-    
     // Derive key directly from LAS_CRYPT_KEY parameter value
     // This allows decryption even if key storage failed
     static bool derive_key_from_param(uint8_t key[32]);
@@ -54,7 +51,6 @@ private:
     AP_Int32 _key_param;      // LAS_CRYPT_KEY parameter (write-only, reads as 0)
     AP_Int8 _crypto_enable;   // LAS_CRYPT_LVL parameter (0 = disabled, 1 = Lua scripts only, 2 = Lua scripts + logs, 3 = Lua scripts + logs, no script content in logs)
     AP_Int8 _key_status;      // LAS_CRYPT_STAT parameter (read-only, 1 = key stored, 0 = no key)
-    AP_Int8 _scripting_enable; // LAS_SCR_ENABLE parameter (0 = disabled, 1 = Lua scripts enabled)
 };
 
 #endif  // AP_CRYPTO_ENABLED
