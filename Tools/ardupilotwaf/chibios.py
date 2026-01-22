@@ -451,14 +451,13 @@ def chibios_firmware(self):
     if self.bld.env.USE_BOOTLOADER_FROM_BOARD:
         bootloader_board = self.bld.env.USE_BOOTLOADER_FROM_BOARD
     bootloader_bin = self.bld.srcnode.make_node("Tools/bootloaders/%s_bl.bin" % bootloader_board)
+    # Always create _with_bl.hex when .apj is created (if bootloader exists and HAVE_INTEL_HEX is enabled)
     if self.bld.env.HAVE_INTEL_HEX:
         if os.path.exists(bootloader_bin.abspath()):
-            if int(self.bld.env.FLASH_RESERVE_START_KB) > 0:
-                hex_target = self.bld.bldnode.find_or_declare('bin/' + link_output.change_ext('_with_bl.hex').name)
-            else:
-                hex_target = self.bld.bldnode.find_or_declare('bin/' + link_output.change_ext('.hex').name)
+            # Always use _with_bl.hex naming when bootloader is present and .apj is being created
+            hex_target = self.bld.bldnode.find_or_declare('bin/' + link_output.change_ext('_with_bl.hex').name)
             hex_task = self.create_task('build_intel_hex', src=[bin_target[0], bootloader_bin], tgt=hex_target)
-            hex_task.set_run_after(cleanup_task)
+            hex_task.set_run_after(generate_apj_task)  # Ensure hex is created after apj
         else:
             print("Not embedding bootloader; %s does not exist" % bootloader_bin)
 
@@ -474,11 +473,15 @@ def chibios_firmware(self):
         app_descriptor_task.set_run_after(generate_bin_task)
         generate_apj_task.set_run_after(app_descriptor_task)
         if hex_task is not None:
+            # Hex task must run after both app_descriptor and apj generation
             hex_task.set_run_after(app_descriptor_task)
+            hex_task.set_run_after(generate_apj_task)
     else:
         generate_apj_task.set_run_after(generate_bin_task)
         if hex_task is not None:
+            # Hex task must run after both bin generation and apj generation
             hex_task.set_run_after(generate_bin_task)
+            hex_task.set_run_after(generate_apj_task)
         
     if self.bld.options.upload:
         _upload_task = self.create_task('upload_fw', src=apj_target)
